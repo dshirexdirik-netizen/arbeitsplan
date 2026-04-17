@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arbeitsplan</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<style>
+body{font-family:-apple-system;background:#f5f6fa;padding:10px}
+h2{text-align:center}
+table{width:100%;border-collapse:collapse;background:#fff}
+th{background:#2f3640;color:#fff;padding:8px;font-size:12px}
+td{border:1px solid #ddd;text-align:center}
+input{width:100%;border:none;text-align:center;background:transparent}
+button{width:100%;padding:12px;margin-top:10px;background:#273c75;color:#fff;border:none;border-radius:8px}
+.delete{background:#c23616;color:#fff;border:none;padding:5px;border-radius:5px}
+</style>
+</head>
+
+<body>
+
+<h2>Wochenplan</h2>
+
+<table>
+<thead>
+<tr>
+<th>Name</th><th>Position</th>
+<th>Mo</th><th>Di</th><th>Mi</th><th>Do</th><th>Fr</th><th>Sa</th><th>So</th>
+<th>Stunden</th><th>Aktion</th>
+</tr>
+</thead>
+
+<tbody id="body"></tbody>
+</table>
+
+<button onclick="addRow()">➕ Mitarbeiter</button>
+<button onclick="exportExcel()">📥 Excel</button>
+
+<script>
+
+let data=[];
+
+function save(){localStorage.setItem("plan",JSON.stringify(data));}
+
+function calc(d){return d.reduce((a,b)=>a+b,0);}
+
+function render(){
+const b=document.getElementById("body");
+b.innerHTML="";
+data.forEach((r,i)=>{
+b.innerHTML+=`
+<tr>
+<td><input value="${r.name}" oninput="data[${i}].name=this.value;save()"></td>
+<td><input value="${r.role}" oninput="data[${i}].role=this.value;save()"></td>
+
+${r.days.map((d,di)=>`
+<td><input type="number" value="${d}"
+oninput="data[${i}].days[${di}]=+this.value;save();render()"></td>
+`).join("")}
+
+<td>${calc(r.days)}</td>
+<td><button class="delete" onclick="data.splice(${i},1);save();render()">✖️</button></td>
+</tr>`;
+});
+}
+
+function addRow(){
+data.push({name:"",role:"Mitarbeiter",days:[0,0,0,0,0,0,0]});
+save();render();
+}
+
+function exportExcel(){
+const wb=XLSX.utils.book_new();
+const ws=XLSX.utils.json_to_sheet(data.map(r=>({
+Name:r.name,
+Position:r.role,
+Mo:r.days[0],Di:r.days[1],Mi:r.days[2],
+Do:r.days[3],Fr:r.days[4],Sa:r.days[5],So:r.days[6],
+Stunden:calc(r.days)
+})));
+XLSX.utils.book_append_sheet(wb,ws,"Plan");
+XLSX.writeFile(wb,"arbeitsplan.xlsx");
+}
+
+data=JSON.parse(localStorage.getItem("plan")||"[]");
+if(data.length===0)data.push({name:"",role:"Mitarbeiter",days:[0,0,0,0,0,0,0]});
+render();
