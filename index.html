@@ -4,7 +4,7 @@ index.html
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Wochenplan</title>
+<title>Arbeitsplan</title>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
@@ -40,7 +40,6 @@ input{
   border:none;
   text-align:center;
   padding:6px;
-  font-size:14px;
 }
 
 button{
@@ -57,6 +56,10 @@ button{
 .delete{
   background:#c23616;
 }
+tfoot{
+  background:#dcdde1;
+  font-weight:bold;
+}
 </style>
 </head>
 
@@ -70,12 +73,22 @@ button{
 <th>Name</th>
 <th>Position</th>
 <th>Mo</th><th>Di</th><th>Mi</th><th>Do</th><th>Fr</th><th>Sa</th><th>So</th>
+<th>Pause (Std.)</th>
 <th>Stunden</th>
 <th>Aktion</th>
 </tr>
 </thead>
 
 <tbody id="tbody"></tbody>
+
+<tfoot>
+<tr>
+<td colspan="10">Gesamtstunden (alle Mitarbeiter)</td>
+<td id="totalHours">0</td>
+<td></td>
+</tr>
+</tfoot>
+
 </table>
 
 <button onclick="addRow()">➕ Mitarbeiter</button>
@@ -89,7 +102,8 @@ if(data.length === 0){
   data = [{
     name:"",
     role:"Mitarbeiter",
-    days:[0,0,0,0,0,0,0]
+    days:[0,0,0,0,0,0,0],
+    pause:1
   }];
 }
 
@@ -99,6 +113,10 @@ function save(){
 
 function sum(days){
   return days.reduce((a,b)=>a+b,0);
+}
+
+function totalAll(){
+  return data.reduce((a,r)=>a + sum(r.days), 0);
 }
 
 function render(){
@@ -112,27 +130,36 @@ function render(){
       <td><input value="${row.name}" oninput="data[${i}].name=this.value;save()"></td>
       <td><input value="${row.role}" oninput="data[${i}].role=this.value;save()"></td>
 
-      <td><input type="number" value="${row.days[0]}" oninput="data[${i}].days[0]=+this.value;save()"></td>
-      <td><input type="number" value="${row.days[1]}" oninput="data[${i}].days[1]=+this.value;save()"></td>
-      <td><input type="number" value="${row.days[2]}" oninput="data[${i}].days[2]=+this.value;save()"></td>
-      <td><input type="number" value="${row.days[3]}" oninput="data[${i}].days[3]=+this.value;save()"></td>
-      <td><input type="number" value="${row.days[4]}" oninput="data[${i}].days[4]=+this.value;save()"></td>
-      <td><input type="number" value="${row.days[5]}" oninput="data[${i}].days[5]=+this.value;save()"></td>
-      <td><input type="number" value="${row.days[6]}" oninput="data[${i}].days[6]=+this.value;save()"></td>
+      <td><input type="number" value="${row.days[0]}" oninput="data[${i}].days[0]=+this.value;save();updateTotal()"></td>
+      <td><input type="number" value="${row.days[1]}" oninput="data[${i}].days[1]=+this.value;save();updateTotal()"></td>
+      <td><input type="number" value="${row.days[2]}" oninput="data[${i}].days[2]=+this.value;save();updateTotal()"></td>
+      <td><input type="number" value="${row.days[3]}" oninput="data[${i}].days[3]=+this.value;save();updateTotal()"></td>
+      <td><input type="number" value="${row.days[4]}" oninput="data[${i}].days[4]=+this.value;save();updateTotal()"></td>
+      <td><input type="number" value="${row.days[5]}" oninput="data[${i}].days[5]=+this.value;save();updateTotal()"></td>
+      <td><input type="number" value="${row.days[6]}" oninput="data[${i}].days[6]=+this.value;save();updateTotal()"></td>
 
-      <td>${sum(row.days)}</td>
+      <td><input type="number" value="${row.pause}" oninput="data[${i}].pause=+this.value;save()"></td>
+
+      <td>${sum(row.days) - (row.pause || 0)}</td>
       <td><button class="delete" onclick="deleteRow(${i})">X</button></td>
     `;
 
     tbody.appendChild(tr);
   });
+
+  updateTotal();
+}
+
+function updateTotal(){
+  document.getElementById("totalHours").innerText = totalAll();
 }
 
 function addRow(){
   data.push({
     name:"",
     role:"Mitarbeiter",
-    days:[0,0,0,0,0,0,0]
+    days:[0,0,0,0,0,0,0],
+    pause:1
   });
 
   save();
@@ -159,7 +186,8 @@ function exportExcel(){
       Fr:r.days[4],
       Sa:r.days[5],
       So:r.days[6],
-      Stunden:sum(r.days)
+      Pause:r.pause,
+      Stunden:sum(r.days) - (r.pause || 0)
     }))
   );
 
@@ -170,6 +198,3 @@ function exportExcel(){
 render();
 
 </script>
-
-</body>
-</html>
