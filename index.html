@@ -1,57 +1,4 @@
 index.html
-<!DOCTYPE html>
-<html lang="de">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Wochenplan</title>
-
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-
-<style>
-body{font-family:-apple-system,Arial;background:#f5f6fa;padding:10px}
-h2{text-align:center}
-
-table{width:100%;border-collapse:collapse;background:#fff}
-th{background:#2f3640;color:#fff;padding:8px;font-size:12px}
-td{border:1px solid #ddd;text-align:center}
-
-input{width:100%;border:none;text-align:center}
-
-button{
-  width:100%;
-  padding:12px;
-  margin-top:10px;
-  background:#273c75;
-  color:#fff;
-  border:none;
-  border-radius:8px;
-}
-.delete{background:#c23616}
-</style>
-</head>
-
-<body>
-
-<h2>Wochenplan</h2>
-
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Position</th>
-<th>Mo</th><th>Di</th><th>Mi</th><th>Do</th><th>Fr</th><th>Sa</th><th>So</th>
-<th>Stunden</th>
-<th>Aktion</th>
-</tr>
-</thead>
-
-<tbody id="tbody"></tbody>
-</table>
-
-<button id="addBtn">➕ Mitarbeiter</button>
-<button id="excelBtn">📥 Excel</button>
-
 <script>
 
 let data = JSON.parse(localStorage.getItem("plan") || "[]");
@@ -76,41 +23,27 @@ function render(){
   const tbody = document.getElementById("tbody");
   tbody.innerHTML = "";
 
-  data.forEach((row, i)=>{
+  data.forEach((row,i)=>{
     const tr = document.createElement("tr");
 
     tr.innerHTML = `
-      <td><input id="n${i}" value="${row.name}"></td>
-      <td><input id="r${i}" value="${row.role}"></td>
+      <td><input value="${row.name}" oninput="data[${i}].name=this.value;save()"></td>
+      <td><input value="${row.role}" oninput="data[${i}].role=this.value;save()"></td>
 
-      <td><input id="d${i}0" type="number" value="${row.days[0]}"></td>
-      <td><input id="d${i}1" type="number" value="${row.days[1]}"></td>
-      <td><input id="d${i}2" type="number" value="${row.days[2]}"></td>
-      <td><input id="d${i}3" type="number" value="${row.days[3]}"></td>
-      <td><input id="d${i}4" type="number" value="${row.days[4]}"></td>
-      <td><input id="d${i}5" type="number" value="${row.days[5]}"></td>
-      <td><input id="d${i}6" type="number" value="${row.days[6]}"></td>
+      <td><input type="number" value="${row.days[0]}" oninput="data[${i}].days[0]=+this.value;save()"></td>
+      <td><input type="number" value="${row.days[1]}" oninput="data[${i}].days[1]=+this.value;save()"></td>
+      <td><input type="number" value="${row.days[2]}" oninput="data[${i}].days[2]=+this.value;save()"></td>
+      <td><input type="number" value="${row.days[3]}" oninput="data[${i}].days[3]=+this.value;save()"></td>
+      <td><input type="number" value="${row.days[4]}" oninput="data[${i}].days[4]=+this.value;save()"></td>
+      <td><input type="number" value="${row.days[5]}" oninput="data[${i}].days[5]=+this.value;save()"></td>
+      <td><input type="number" value="${row.days[6]}" oninput="data[${i}].days[6]=+this.value;save()"></td>
 
       <td>${sum(row.days)}</td>
-      <td><button class="delete" onclick="remove(${i})">X</button></td>
+      <td><button onclick="remove(${i})">X</button></td>
     `;
 
     tbody.appendChild(tr);
   });
-}
-
-function sync(){
-  data.forEach((row,i)=>{
-    row.name = document.getElementById("n"+i).value;
-    row.role = document.getElementById("r"+i).value;
-
-    for(let d=0; d<7; d++){
-      row.days[d] = Number(document.getElementById("d"+i+d).value) || 0;
-    }
-  });
-
-  save();
-  render();
 }
 
 function add(){
@@ -155,11 +88,6 @@ function exportExcel(){
 document.getElementById("addBtn").onclick = add;
 document.getElementById("excelBtn").onclick = exportExcel;
 
-setInterval(sync, 500); // <-- ключевой фикс
-
 render();
 
 </script>
-
-</body>
-</html>
