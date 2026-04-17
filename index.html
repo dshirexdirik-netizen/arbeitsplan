@@ -1,62 +1,34 @@
-index.html<!DOCTYPE html>
+index.html
+<!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Wochenplan</title>
+<title>Arbeitsplan</title>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <style>
-body{
-  font-family: -apple-system, Arial;
-  background:#f5f6fa;
-  padding:10px;
-}
+body { font-family: -apple-system, Arial; background:#f5f6fa; padding:10px; }
+h2 { text-align:center; }
 
-h2{text-align:center;}
+table { width:100%; border-collapse:collapse; background:#fff; }
+th { background:#2f3640; color:#fff; padding:8px; font-size:12px; }
+td { border:1px solid #ddd; text-align:center; }
 
-table{
-  width:100%;
-  border-collapse:collapse;
-  background:#fff;
-}
+input { width:100%; border:none; text-align:center; padding:6px; }
 
-th{
-  background:#2f3640;
-  color:#fff;
-  font-size:12px;
-  padding:6px;
-}
-
-td{
-  border:1px solid #ddd;
-  text-align:center;
-}
-
-input{
-  width:100%;
-  border:none;
-  text-align:center;
-  padding:5px;
-}
-
-button{
+button {
   width:100%;
   padding:12px;
   margin-top:10px;
   border:none;
   border-radius:8px;
   background:#273c75;
-  color:#fff;
+  color:white;
   font-size:16px;
 }
-
-.delete{
-  background:#c23616;
-  padding:5px;
-  border-radius:5px;
-}
+.delete { background:#c23616; }
 </style>
 </head>
 
@@ -78,39 +50,47 @@ button{
 <tbody id="tbody"></tbody>
 </table>
 
-<button onclick="addRow()">➕ Mitarbeiter</button>
-<button onclick="exportExcel()">📥 Excel</button>
+<button id="add">➕ Mitarbeiter</button>
+<button id="excel">📥 Excel herunterladen</button>
 
 <script>
-let data = [];
+let data = JSON.parse(localStorage.getItem("plan") || "[]");
 
-function save(){
+if (data.length === 0) {
+  data.push({
+    name: "",
+    role: "Mitarbeiter",
+    days: [0,0,0,0,0,0,0]
+  });
+}
+
+function save() {
   localStorage.setItem("plan", JSON.stringify(data));
 }
 
-function calc(days){
+function sum(days) {
   return days.reduce((a,b)=>a+b,0);
 }
 
-function render(){
+function render() {
   const tbody = document.getElementById("tbody");
   tbody.innerHTML = "";
 
-  data.forEach((row, i)=>{
+  data.forEach((row, i) => {
     const tr = document.createElement("tr");
 
     let html = `
-      <td><input value="${row.name}" onchange="updateName(${i},this.value)"></td>
-      <td><input value="${row.role}" onchange="updateRole(${i},this.value)"></td>
+      <td><input value="${row.name}" data-i="${i}" data-type="name"></td>
+      <td><input value="${row.role}" data-i="${i}" data-type="role"></td>
     `;
 
-    row.days.forEach((d,di)=>{
-      html += <td><input type="number" value="${d}" onchange="updateDay(${i},${di},this.value)"></td>;
+    row.days.forEach((d, di) => {
+      html += <td><input type="number" value="${d}" data-i="${i}" data-di="${di}" class="day"></td>;
     });
 
     html += `
-      <td>${calc(row.days)}</td>
-      <td><button class="delete" onclick="deleteRow(${i})">X</button></td>
+      <td>${sum(row.days)}</td>
+      <td><button class="delete" data-del="${i}">X</button></td>
     `;
 
     tr.innerHTML = html;
@@ -118,70 +98,64 @@ function render(){
   });
 }
 
-function addRow(){
-  data.push({
-    name:"",
-    role:"Mitarbeiter",
-    days:[0,0,0,0,0,0,0]
-  });
+document.addEventListener("input", (e) => {
+  const i = e.target.dataset.i;
+
+  if (e.target.dataset.type === "name") {
+    data[i].name = e.target.value;
+  }
+
+  if (e.target.dataset.type === "role") {
+    data[i].role = e.target.value;
+  }
+
+  if (e.target.classList.contains("day")) {
+    const di = e.target.dataset.di;
+    data[i].days[di] = Number(e.target.value) || 0;
+  }
+
   save();
-  render();
-}
+});
 
-function deleteRow(i){
-  data.splice(i,1);
-  save();
-  render();
-}
+document.addEventListener("click", (e) => {
+  if (e.target.id === "add") {
+    data.push({
+      name:"",
+      role:"Mitarbeiter",
+      days:[0,0,0,0,0,0,0]
+    });
+    save();
+    render();
+  }
 
-function updateName(i,val){
-  data[i].name = val;
-  save();
-}
+  if (e.target.dataset.del !== undefined) {
+    data.splice(e.target.dataset.del, 1);
+    save();
+    render();
+  }
 
-function updateRole(i,val){
-  data[i].role = val;
-  save();
-}
+  if (e.target.id === "excel") {
+    const wb = XLSX.utils.book_new();
 
-function updateDay(i,di,val){
-  data[i].days[di] = Number(val) || 0;
-  save();
-  render();
-}
+    const ws = XLSX.utils.json_to_sheet(
+      data.map(r => ({
+        Name:r.name,
+        Position:r.role,
+        Mo:r.days[0],
+        Di:r.days[1],
+        Mi:r.days[2],
+        Do:r.days[3],
+        Fr:r.days[4],
+        Sa:r.days[5],
+        So:r.days[6],
+        Stunden:sum(r.days)
+      }))
+    );
 
-function exportExcel(){
-  const wb = XLSX.utils.book_new();
-
-  const ws = XLSX.utils.json_to_sheet(
-    data.map(r=>({
-      Name:r.name,
-      Position:r.role,
-      Mo:r.days[0],
-      Di:r.days[1],
-      Mi:r.days[2],
-      Do:r.days[3],
-      Fr:r.days[4],
-      Sa:r.days[5],
-      So:r.days[6],
-      Stunden:calc(r.days)
-    }))
-  );
-
-  XLSX.utils.book_append_sheet(wb, ws, "Plan");
-  XLSX.writeFile(wb, "arbeitsplan.xlsx");
-}
-
-// LOAD
-data = JSON.parse(localStorage.getItem("plan") || "[]");
-
-if(data.length === 0){
-  data.push({
-    name:"",
-    role:"Mitarbeiter",
-    days:[0,0,0,0,0,0,0]
-  });
-}
+    XLSX.utils.book_append_sheet(wb, ws, "Plan");
+    XLSX.writeFile(wb, "arbeitsplan.xlsx");
+  }
+});
 
 render();
 </script>
