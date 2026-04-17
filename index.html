@@ -3,20 +3,61 @@ index.html
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Arbeitsplan</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wochenplan</title>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <style>
-body{font-family:-apple-system;background:#f5f6fa;padding:10px}
-h2{text-align:center}
-table{width:100%;border-collapse:collapse;background:#fff}
-th{background:#2f3640;color:#fff;padding:8px;font-size:12px}
-td{border:1px solid #ddd;text-align:center}
-input{width:100%;border:none;text-align:center;background:transparent}
-button{width:100%;padding:12px;margin-top:10px;background:#273c75;color:#fff;border:none;border-radius:8px}
-.delete{background:#c23616;color:#fff;border:none;padding:5px;border-radius:5px}
+body{
+  font-family: -apple-system, Arial;
+  background:#f5f6fa;
+  padding:10px;
+}
+
+h2{text-align:center;}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  background:#fff;
+}
+
+th{
+  background:#2f3640;
+  color:#fff;
+  font-size:12px;
+  padding:6px;
+}
+
+td{
+  border:1px solid #ddd;
+  text-align:center;
+}
+
+input{
+  width:100%;
+  border:none;
+  text-align:center;
+  padding:5px;
+}
+
+button{
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  border:none;
+  border-radius:8px;
+  background:#273c75;
+  color:#fff;
+  font-size:16px;
+}
+
+.delete{
+  background:#c23616;
+  padding:5px;
+  border-radius:5px;
+}
 </style>
 </head>
 
@@ -27,20 +68,21 @@ button{width:100%;padding:12px;margin-top:10px;background:#273c75;color:#fff;bor
 <table>
 <thead>
 <tr>
-<th>Name</th><th>Position</th>
+<th>Name</th>
+<th>Position</th>
 <th>Mo</th><th>Di</th><th>Mi</th><th>Do</th><th>Fr</th><th>Sa</th><th>So</th>
-<th>Stunden</th><th>Aktion</th>
+<th>Stunden</th>
+<th>Aktion</th>
 </tr>
 </thead>
 
-<tbody id="body"></tbody>
+<tbody id="tbody"></tbody>
 </table>
 
-<button id="addBtn">➕ Mitarbeiter</button>
-<button id="excelBtn">📥 Excel</button>
+<button onclick="addRow()">➕ Mitarbeiter</button>
+<button onclick="exportExcel()">📥 Excel</button>
 
 <script>
-
 let data = [];
 
 function save(){
@@ -52,84 +94,97 @@ function calc(days){
 }
 
 function render(){
-  const b = document.getElementById("body");
-  b.innerHTML = "";
+  const tbody = document.getElementById("tbody");
+  tbody.innerHTML = "";
 
-  data.forEach((r,i)=>{
+  data.forEach((row, i)=>{
     const tr = document.createElement("tr");
 
-    tr.innerHTML = `
-      <td><input value="${r.name}"></td>
-      <td><input value="${r.role}"></td>
-      ${r.days.map(d=>`<td><input type="number" value="${d}"></td>`).join("")}
-      <td class="total">${calc(r.days)}</td>
-      <td><button class="delete">✖️</button></td>
+    let html = `
+      <td><input value="${row.name}" onchange="updateName(${i},this.value)"></td>
+      <td><input value="${row.role}" onchange="updateRole(${i},this.value)"></td>
     `;
 
-    // имя
-    tr.children[0].querySelector("input").oninput = (e)=>{
-      data[i].name = e.target.value;
-      save();
-    };
-
-    // роль
-    tr.children[1].querySelector("input").oninput = (e)=>{
-      data[i].role = e.target.value;
-      save();
-    };
-
-    // дни
-    r.days.forEach((d,di)=>{
-      tr.children[2+di].querySelector("input").oninput = (e)=>{
-        data[i].days[di] = Math.max(0, +e.target.value || 0);
-        save();
-        render();
-      };
+    row.days.forEach((d,di)=>{
+      html += <td><input type="number" value="${d}" onchange="updateDay(${i},${di},this.value)"></td>;
     });
 
-    // удалить
-    tr.querySelector(".delete").onclick = ()=>{
-      data.splice(i,1);
-      save();
-      render();
-    };
+    html += `
+      <td>${calc(row.days)}</td>
+      <td><button class="delete" onclick="deleteRow(${i})">X</button></td>
+    `;
 
-    b.appendChild(tr);
+    tr.innerHTML = html;
+    tbody.appendChild(tr);
   });
 }
 
 function addRow(){
-  data.push({name:"", role:"Mitarbeiter", days:[0,0,0,0,0,0,0]});
+  data.push({
+    name:"",
+    role:"Mitarbeiter",
+    days:[0,0,0,0,0,0,0]
+  });
+  save();
+  render();
+}
+
+function deleteRow(i){
+  data.splice(i,1);
+  save();
+  render();
+}
+
+function updateName(i,val){
+  data[i].name = val;
+  save();
+}
+
+function updateRole(i,val){
+  data[i].role = val;
+  save();
+}
+
+function updateDay(i,di,val){
+  data[i].days[di] = Number(val) || 0;
   save();
   render();
 }
 
 function exportExcel(){
   const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.json_to_sheet(data.map(r=>({
-    Name:r.name,
-    Position:r.role,
-    Mo:r.days[0],Di:r.days[1],Mi:r.days[2],
-    Do:r.days[3],Fr:r.days[4],Sa:r.days[5],So:r.days[6],
-    Stunden:calc(r.days)
-  })));
+
+  const ws = XLSX.utils.json_to_sheet(
+    data.map(r=>({
+      Name:r.name,
+      Position:r.role,
+      Mo:r.days[0],
+      Di:r.days[1],
+      Mi:r.days[2],
+      Do:r.days[3],
+      Fr:r.days[4],
+      Sa:r.days[5],
+      So:r.days[6],
+      Stunden:calc(r.days)
+    }))
+  );
+
   XLSX.utils.book_append_sheet(wb, ws, "Plan");
   XLSX.writeFile(wb, "arbeitsplan.xlsx");
 }
 
-// кнопки (ВАЖНО для iPhone)
-document.getElementById("addBtn").onclick = addRow;
-document.getElementById("excelBtn").onclick = exportExcel;
-
-// загрузка
+// LOAD
 data = JSON.parse(localStorage.getItem("plan") || "[]");
 
 if(data.length === 0){
-  data.push({name:"", role:"Mitarbeiter", days:[0,0,0,0,0,0,0]});
+  data.push({
+    name:"",
+    role:"Mitarbeiter",
+    days:[0,0,0,0,0,0,0]
+  });
 }
 
 render();
-
 </script>
 
 </body>
