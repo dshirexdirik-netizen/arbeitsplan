@@ -5,7 +5,9 @@ index.html
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Arbeitsplan</title>
+
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
 <style>
 body{font-family:-apple-system;background:#f5f6fa;padding:10px}
 h2{text-align:center}
@@ -34,55 +36,101 @@ button{width:100%;padding:12px;margin-top:10px;background:#273c75;color:#fff;bor
 <tbody id="body"></tbody>
 </table>
 
-<button onclick="addRow()">➕ Mitarbeiter</button>
-<button onclick="exportExcel()">📥 Excel</button>
+<button id="addBtn">➕ Mitarbeiter</button>
+<button id="excelBtn">📥 Excel</button>
 
 <script>
 
-let data=[];
+let data = [];
 
-function save(){localStorage.setItem("plan",JSON.stringify(data));}
+function save(){
+  localStorage.setItem("plan", JSON.stringify(data));
+}
 
-function calc(d){return d.reduce((a,b)=>a+b,0);}
+function calc(days){
+  return days.reduce((a,b)=>a+b,0);
+}
 
 function render(){
-const b=document.getElementById("body");
-b.innerHTML="";
-data.forEach((r,i)=>{
-b.innerHTML+=`
-<tr>
-<td><input value="${r.name}" oninput="data[${i}].name=this.value;save()"></td>
-<td><input value="${r.role}" oninput="data[${i}].role=this.value;save()"></td>
+  const b = document.getElementById("body");
+  b.innerHTML = "";
 
-${r.days.map((d,di)=>`
-<td><input type="number" value="${d}"
-oninput="data[${i}].days[${di}]=+this.value;save();render()"></td>
-`).join("")}
+  data.forEach((r,i)=>{
+    const tr = document.createElement("tr");
 
-<td>${calc(r.days)}</td>
-<td><button class="delete" onclick="data.splice(${i},1);save();render()">✖️</button></td>
-</tr>`;
-});
+    tr.innerHTML = `
+      <td><input value="${r.name}"></td>
+      <td><input value="${r.role}"></td>
+      ${r.days.map(d=>`<td><input type="number" value="${d}"></td>`).join("")}
+      <td class="total">${calc(r.days)}</td>
+      <td><button class="delete">✖️</button></td>
+    `;
+
+    // имя
+    tr.children[0].querySelector("input").oninput = (e)=>{
+      data[i].name = e.target.value;
+      save();
+    };
+
+    // роль
+    tr.children[1].querySelector("input").oninput = (e)=>{
+      data[i].role = e.target.value;
+      save();
+    };
+
+    // дни
+    r.days.forEach((d,di)=>{
+      tr.children[2+di].querySelector("input").oninput = (e)=>{
+        data[i].days[di] = Math.max(0, +e.target.value || 0);
+        save();
+        render();
+      };
+    });
+
+    // удалить
+    tr.querySelector(".delete").onclick = ()=>{
+      data.splice(i,1);
+      save();
+      render();
+    };
+
+    b.appendChild(tr);
+  });
 }
 
 function addRow(){
-data.push({name:"",role:"Mitarbeiter",days:[0,0,0,0,0,0,0]});
-save();render();
+  data.push({name:"", role:"Mitarbeiter", days:[0,0,0,0,0,0,0]});
+  save();
+  render();
 }
 
 function exportExcel(){
-const wb=XLSX.utils.book_new();
-const ws=XLSX.utils.json_to_sheet(data.map(r=>({
-Name:r.name,
-Position:r.role,
-Mo:r.days[0],Di:r.days[1],Mi:r.days[2],
-Do:r.days[3],Fr:r.days[4],Sa:r.days[5],So:r.days[6],
-Stunden:calc(r.days)
-})));
-XLSX.utils.book_append_sheet(wb,ws,"Plan");
-XLSX.writeFile(wb,"arbeitsplan.xlsx");
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(data.map(r=>({
+    Name:r.name,
+    Position:r.role,
+    Mo:r.days[0],Di:r.days[1],Mi:r.days[2],
+    Do:r.days[3],Fr:r.days[4],Sa:r.days[5],So:r.days[6],
+    Stunden:calc(r.days)
+  })));
+  XLSX.utils.book_append_sheet(wb, ws, "Plan");
+  XLSX.writeFile(wb, "arbeitsplan.xlsx");
 }
 
-data=JSON.parse(localStorage.getItem("plan")||"[]");
-if(data.length===0)data.push({name:"",role:"Mitarbeiter",days:[0,0,0,0,0,0,0]});
+// кнопки (ВАЖНО для iPhone)
+document.getElementById("addBtn").onclick = addRow;
+document.getElementById("excelBtn").onclick = exportExcel;
+
+// загрузка
+data = JSON.parse(localStorage.getItem("plan") || "[]");
+
+if(data.length === 0){
+  data.push({name:"", role:"Mitarbeiter", days:[0,0,0,0,0,0,0]});
+}
+
 render();
+
+</script>
+
+</body>
+</html>
