@@ -1,9 +1,91 @@
 index.html
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wochenplan</title>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+<style>
+body{
+  font-family:-apple-system,Arial;
+  background:#f5f6fa;
+  padding:10px;
+}
+
+h2{text-align:center;}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  background:#fff;
+}
+
+th{
+  background:#2f3640;
+  color:#fff;
+  font-size:12px;
+  padding:6px;
+}
+
+td{
+  border:1px solid #ddd;
+  text-align:center;
+}
+
+input{
+  width:100%;
+  border:none;
+  text-align:center;
+  padding:6px;
+  font-size:14px;
+}
+
+button{
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  border:none;
+  border-radius:8px;
+  background:#273c75;
+  color:#fff;
+  font-size:16px;
+}
+
+.delete{
+  background:#c23616;
+}
+</style>
+</head>
+
+<body>
+
+<h2>Wochenplan</h2>
+
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Position</th>
+<th>Mo</th><th>Di</th><th>Mi</th><th>Do</th><th>Fr</th><th>Sa</th><th>So</th>
+<th>Stunden</th>
+<th>Aktion</th>
+</tr>
+</thead>
+
+<tbody id="tbody"></tbody>
+</table>
+
+<button onclick="addRow()">➕ Mitarbeiter</button>
+<button onclick="exportExcel()">📥 Excel herunterladen</button>
+
 <script>
 
 let data = JSON.parse(localStorage.getItem("plan") || "[]");
 
-if (data.length === 0) {
+if(data.length === 0){
   data = [{
     name:"",
     role:"Mitarbeiter",
@@ -39,14 +121,14 @@ function render(){
       <td><input type="number" value="${row.days[6]}" oninput="data[${i}].days[6]=+this.value;save()"></td>
 
       <td>${sum(row.days)}</td>
-      <td><button onclick="remove(${i})">X</button></td>
+      <td><button class="delete" onclick="deleteRow(${i})">X</button></td>
     `;
 
     tbody.appendChild(tr);
   });
 }
 
-function add(){
+function addRow(){
   data.push({
     name:"",
     role:"Mitarbeiter",
@@ -57,7 +139,7 @@ function add(){
   render();
 }
 
-function remove(i){
+function deleteRow(i){
   data.splice(i,1);
   save();
   render();
@@ -85,9 +167,9 @@ function exportExcel(){
   XLSX.writeFile(wb, "arbeitsplan.xlsx");
 }
 
-document.getElementById("addBtn").onclick = add;
-document.getElementById("excelBtn").onclick = exportExcel;
-
 render();
 
 </script>
+
+</body>
+</html>
