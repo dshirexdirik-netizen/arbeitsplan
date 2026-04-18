@@ -3,7 +3,7 @@ index.html
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>План смен</title>
+<title>Shift System</title>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
@@ -73,9 +73,7 @@ button {
 
 <script>
 
-const days = 7;
-
-function addRow(data = null) {
+function addRow() {
     const body = document.getElementById("body");
 
     let row = "<tr>";
@@ -86,7 +84,7 @@ function addRow(data = null) {
     for (let i = 0; i < 7; i++) {
         row += `
         <td contenteditable="true" oninput="recalc()">08:00</td>
-        <td contenteditable="true" oninput="recalc()">0</td>
+        <td contenteditable="true" oninput="recalc()">30</td>
         <td contenteditable="true" oninput="recalc()">17:00</td>
         <td class="sum">0</td>
         `;
@@ -102,11 +100,10 @@ function addRow(data = null) {
     save();
 }
 
-function toMin(t) {
+function timeToMin(t) {
     if (!t) return 0;
-    let parts = t.split(":");
-    if (parts.length < 2) return 0;
-    return (+parts[0]) * 60 + (+parts[1]);
+    let [h,m] = t.split(":").map(Number);
+    return h*60 + m;
 }
 
 function recalc() {
@@ -118,14 +115,17 @@ function recalc() {
 
         for (let d = 0; d < 7; d++) {
 
-            let b = cells[offset + d*4].innerText;
-            let p = cells[offset + d*4 + 1].innerText;
-            let e = cells[offset + d*4 + 2].innerText;
+            let b = cells[offset + d*4].innerText.trim();
+            let p = parseInt(cells[offset + d*4 + 1].innerText.trim()) || 0;
+            let e = cells[offset + d*4 + 2].innerText.trim();
             let s = cells[offset + d*4 + 3];
 
-            let total = toMin(e) - toMin(b) - (parseInt(p)||0);
+            let start = timeToMin(b);
+            let end = timeToMin(e);
 
-            let hours = total > 0 ? total/60 : 0;
+            let total = end - start - p;
+
+            let hours = total > 0 ? total / 60 : 0;
 
             s.innerText = hours.toFixed(2);
 
@@ -143,11 +143,11 @@ function recalc() {
 }
 
 function save() {
-    localStorage.setItem("shift_table", document.getElementById("body").innerHTML);
+    localStorage.setItem("shift_data", document.getElementById("body").innerHTML);
 }
 
 function load() {
-    let data = localStorage.getItem("shift_table");
+    let data = localStorage.getItem("shift_data");
     if (data) {
         document.getElementById("body").innerHTML = data;
     } else {
@@ -162,7 +162,7 @@ function exportExcel() {
 }
 
 function clearAll() {
-    localStorage.removeItem("shift_table");
+    localStorage.removeItem("shift_data");
     document.getElementById("body").innerHTML = "";
     addRow();
 }
