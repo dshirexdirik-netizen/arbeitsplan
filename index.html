@@ -19,14 +19,12 @@ button {
     padding:10px;
     font-size:16px;
 }
-
-.sum { background:#f1f2f6; font-weight:bold; }
 </style>
 </head>
 
 <body>
 
-<h2>Timesheet</h2>
+<h2>Timesheet (Hours)</h2>
 
 <table>
 <thead>
@@ -69,6 +67,22 @@ button {
 
 <script>
 
+// --- формат вывода ---
+function formatHM(min) {
+    let h = Math.floor(min / 60);
+    let m = min % 60;
+    return `${h}h ${m < 10 ? "0" : ""}${m}m`;
+}
+
+// --- время в минуты ---
+function toMin(t) {
+    if (!t) return 0;
+    let p = t.split(":");
+    if (p.length !== 2) return 0;
+    return (+p[0]) * 60 + (+p[1]);
+}
+
+// --- строка ---
 function addRow() {
     const body = document.getElementById("body");
 
@@ -81,38 +95,26 @@ function addRow() {
         row += `
         <td contenteditable="true" oninput="recalc()">08:00</td>
         <td contenteditable="true" oninput="recalc()">01:30</td>
-        <td contenteditable="true" oninput="recalc()">18:45</td>
-        <td class="sum">0</td>
+        <td contenteditable="true" oninput="recalc()">18:00</td>
+        <td>0</td>
         `;
     }
 
-    row += `<td class="week">0</td>`;
-    row += `<td class="month">0</td>`;
+    row += `<td>0</td>`;
+    row += `<td>0</td>`;
 
     row += "</tr>";
 
     body.innerHTML += row;
 }
 
-// HH:MM → минуты
-function toMin(t) {
-    if (!t) return 0;
-    let p = t.split(":");
-    if (p.length !== 2) return 0;
-    return (+p[0]) * 60 + (+p[1]);
-}
-
-// PAUSE тоже HH:MM
-function pauseMin(t) {
-    return toMin(t);
-}
-
+// --- расчёт ---
 function recalc() {
     document.querySelectorAll("#body tr").forEach(row => {
         let cells = row.querySelectorAll("td");
 
         let offset = 2;
-        let week = 0;
+        let weekMin = 0;
 
         for (let d = 0; d < 7; d++) {
 
@@ -121,25 +123,28 @@ function recalc() {
             let end   = cells[offset + d*4 + 2].innerText.trim();
             let out   = cells[offset + d*4 + 3];
 
-            let diff =
-                toMin(end) -
-                toMin(start) -
-                pauseMin(pause);
+            let pauseMin = 0;
+
+            if (pause.includes(":")) {
+                pauseMin = toMin(pause);
+            } else {
+                pauseMin = parseInt(pause) || 0;
+            }
+
+            let diff = toMin(end) - toMin(start) - pauseMin;
 
             if (diff < 0) diff = 0;
 
-            let hours = diff / 60;
+            out.innerText = formatHM(diff);
 
-            out.innerText = hours.toFixed(2);
-
-            week += hours;
+            weekMin += diff;
         }
 
         let weekCell = cells[cells.length - 2];
         let monthCell = cells[cells.length - 1];
 
-        weekCell.innerText = week.toFixed(2);
-        monthCell.innerText = (week * 4).toFixed(2);
+        weekCell.innerText = formatHM(weekMin);
+        monthCell.innerText = formatHM(weekMin * 4);
     });
 }
 
@@ -148,4 +153,4 @@ addRow();
 </script>
 
 </body>
-</html>
+</html>--
