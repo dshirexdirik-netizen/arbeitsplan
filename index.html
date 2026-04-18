@@ -3,7 +3,9 @@ index.html
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Timesheet Hours FIX</title>
+<title>Timesheet + Excel</title>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <style>
 body { font-family: Arial; padding:10px; background:#f5f6fa; }
@@ -24,9 +26,9 @@ button {
 
 <body>
 
-<h2>Timesheet (ONLY HOURS)</h2>
+<h2>Timesheet</h2>
 
-<table>
+<table id="table">
 <thead>
 <tr>
 <th>Имя</th>
@@ -62,7 +64,8 @@ button {
 <tbody id="body"></tbody>
 </table>
 
-<button onclick="addRow()">➕ Добавить</button>
+<button onclick="addRow()">➕ Add</button>
+<button onclick="exportExcel()">📥 Excel Export</button>
 
 <script>
 
@@ -78,7 +81,7 @@ function addRow() {
 
     let row = "<tr>";
 
-    row += `<td contenteditable="true">Имя</td>`;
+    row += `<td contenteditable="true">Name</td>`;
     row += `<td contenteditable="true">TZ</td>`;
 
     for (let i = 0; i < 7; i++) {
@@ -116,15 +119,15 @@ function recalc() {
                 ? toMin(pause)
                 : (parseInt(pause) || 0);
 
-            let diffMin = toMin(end) - toMin(start) - pauseMin;
+            let diff = toMin(end) - toMin(start) - pauseMin;
 
-            if (diffMin < 0) diffMin = 0;
+            if (diff < 0) diff = 0;
 
-            let hours = diffMin / 60;
+            let hours = diff / 60;
 
             out.innerText = hours.toFixed(2);
 
-            weekMin += diffMin;
+            weekMin += diff;
         }
 
         let weekCell = cells[cells.length - 2];
@@ -133,6 +136,17 @@ function recalc() {
         weekCell.innerText = (weekMin / 60).toFixed(2);
         monthCell.innerText = ((weekMin / 60) * 4).toFixed(2);
     });
+}
+
+function exportExcel() {
+    let table = document.getElementById("table");
+
+    let wb = XLSX.utils.book_new();
+    let ws = XLSX.utils.table_to_sheet(table);
+
+    XLSX.utils.book_append_sheet(wb, ws, "Timesheet");
+
+    XLSX.writeFile(wb, "timesheet.xlsx");
 }
 
 addRow();
