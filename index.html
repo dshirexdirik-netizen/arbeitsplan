@@ -35,6 +35,14 @@ td{
   text-align:center;
 }
 
+tbody tr:nth-child(even){
+  background:#f1f2f6;
+}
+
+tr:hover{
+  background:#dcdde1;
+}
+
 input{
   width:100%;
   border:none;
@@ -51,11 +59,13 @@ button{
   background:#273c75;
   color:#fff;
   font-size:16px;
+  cursor:pointer;
 }
 
 .delete{
   background:#c23616;
 }
+
 tfoot{
   background:#dcdde1;
   font-weight:bold;
@@ -73,7 +83,7 @@ tfoot{
 <th>Name</th>
 <th>Position</th>
 <th>Mo</th><th>Di</th><th>Mi</th><th>Do</th><th>Fr</th><th>Sa</th><th>So</th>
-<th>Pause (Std.)</th>
+<th>Pause</th>
 <th>Stunden</th>
 <th>Aktion</th>
 </tr>
@@ -83,8 +93,14 @@ tfoot{
 
 <tfoot>
 <tr>
-<td colspan="10">Gesamtstunden (alle Mitarbeiter)</td>
+<td colspan="10">Общие часы</td>
 <td id="totalHours">0</td>
+<td></td>
+</tr>
+
+<tr>
+<td colspan="10">Общая пауза</td>
+<td id="totalPause">0</td>
 <td></td>
 </tr>
 </tfoot>
@@ -92,7 +108,7 @@ tfoot{
 </table>
 
 <button onclick="addRow()">➕ Mitarbeiter</button>
-<button onclick="exportExcel()">📥 Excel herunterladen</button>
+<button onclick="exportExcel()">📥 Excel</button>
 
 <script>
 
@@ -115,8 +131,17 @@ function sum(days){
   return days.reduce((a,b)=>a+b,0);
 }
 
-function totalAll(){
-  return data.reduce((a,r)=>a + sum(r.days), 0);
+function calcRow(row){
+  const total = sum(row.days);
+  const pause = total > 0 ? (row.pause || 0) : 0;
+  return Math.max(0, total - pause);
+}
+
+function totalPause(){
+  return data.reduce((a,r)=>{
+    const worked = sum(r.days);
+    return a + (worked > 0 ? (r.pause || 0) : 0);
+  },0);
 }
 
 function render(){
@@ -130,28 +155,55 @@ function render(){
       <td><input value="${row.name}" oninput="data[${i}].name=this.value;save()"></td>
       <td><input value="${row.role}" oninput="data[${i}].role=this.value;save()"></td>
 
-      <td><input type="number" value="${row.days[0]}" oninput="data[${i}].days[0]=+this.value;save();updateTotal()"></td>
-      <td><input type="number" value="${row.days[1]}" oninput="data[${i}].days[1]=+this.value;save();updateTotal()"></td>
-      <td><input type="number" value="${row.days[2]}" oninput="data[${i}].days[2]=+this.value;save();updateTotal()"></td>
-      <td><input type="number" value="${row.days[3]}" oninput="data[${i}].days[3]=+this.value;save();updateTotal()"></td>
-      <td><input type="number" value="${row.days[4]}" oninput="data[${i}].days[4]=+this.value;save();updateTotal()"></td>
-      <td><input type="number" value="${row.days[5]}" oninput="data[${i}].days[5]=+this.value;save();updateTotal()"></td>
-      <td><input type="number" value="${row.days[6]}" oninput="data[${i}].days[6]=+this.value;save();updateTotal()"></td>
+      ${row.days.map((d,di)=>`
+        <td>
+          <input type="number" min="0" max="24" value="${d}"
+          oninput="
+            data[${i}].days[${di}]=Number(this.value)||0;
+            save();
+            update();
+          ">
+        </td>
+      `).join("")}
 
-      <td><input type="number" value="${row.pause}" oninput="data[${i}].pause=+this.value;save()"></td>
+      <td>
+        <input type="number" min="0" max="12" value="${row.pause}"
+        oninput="
+          data[${i}].pause=Number(this.value)||0;
+          save();
+          update();
+        ">
+      </td>
 
-      <td>${sum(row.days) - (row.pause || 0)}</td>
+      <td id="hours-${i}">${calcRow(row)}</td>
       <td><button class="delete" onclick="deleteRow(${i})">X</button></td>
     `;
 
     tbody.appendChild(tr);
   });
 
-  updateTotal();
+  update();
 }
 
-function updateTotal(){
-  document.getElementById("totalHours").innerText = totalAll();
+function update(){
+  let total = 0;
+  let pauseTotal = 0;
+
+  data.forEach((row,i)=>{
+    const hours = calcRow(row);
+    total += hours;
+
+    const worked = sum(row.days);
+    if(worked > 0){
+      pauseTotal += (row.pause || 0);
+    }
+
+    const el = document.getElementById(`hours-${i}`);
+    if(el) el.innerText = hours;
+  });
+
+  document.getElementById("totalHours").innerText = total;
+  document.getElementById("totalPause").innerText = pauseTotal;
 }
 
 function addRow(){
@@ -187,7 +239,7 @@ function exportExcel(){
       Sa:r.days[5],
       So:r.days[6],
       Pause:r.pause,
-      Stunden:sum(r.days) - (r.pause || 0)
+      Stunden:calcRow(r)
     }))
   );
 
@@ -197,7 +249,7 @@ function exportExcel(){
 
 render();
 
-</script> 
- 
+</script>
+
 </body>
 </html>
