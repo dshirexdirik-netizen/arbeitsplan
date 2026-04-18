@@ -3,72 +3,69 @@ index.html
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>План смен</title>
+<title>Shift Plan</title>
 
 <style>
-body { font-family: Arial; background:#f5f6fa; padding:10px; }
-h2 { text-align:center; }
-
-table { width:100%; border-collapse:collapse; background:#fff; }
-th, td { border:1px solid #ddd; padding:6px; text-align:center; }
-
+body { font-family: Arial; padding:10px; }
+table { width:100%; border-collapse:collapse; }
+td, th { border:1px solid #ddd; padding:6px; text-align:center; }
 th { background:#2f3640; color:#fff; }
-
-.name { background:#eaeef2; font-weight:bold; }
-.role { background:#dcdde1; }
-
-.day-btn {
-    background:#f1f2f6;
-    cursor:pointer;
-}
-
-button {
-    margin-top:10px;
-    width:100%;
-    padding:10px;
-    font-size:16px;
-}
+.sum { background:#f1f2f6; font-weight:bold; }
 </style>
 </head>
 
 <body>
-
-<h2>План смен</h2>
 
 <table>
 <thead>
 <tr>
 <th>Имя</th>
 <th>Должность</th>
-<th>Пн</th>
-<th>Вт</th>
-<th>Ср</th>
-<th>Чт</th>
-<th>Пт</th>
-<th>Сб</th>
-<th>Вс</th>
+<th colspan="4">Пн</th>
+<th colspan="4">Вт</th>
+<th colspan="4">Ср</th>
+<th colspan="4">Чт</th>
+<th colspan="4">Пт</th>
+<th colspan="4">Сб</th>
+<th colspan="4">Вс</th>
+</tr>
+
+<tr>
+<th></th><th></th>
+
+<th>B</th><th>P</th><th>E</th><th>S</th>
+<th>B</th><th>P</th><th>E</th><th>S</th>
+<th>B</th><th>P</th><th>E</th><th>S</th>
+<th>B</th><th>P</th><th>E</th><th>S</th>
+<th>B</th><th>P</th><th>E</th><th>S</th>
+<th>B</th><th>P</th><th>E</th><th>S</th>
+<th>B</th><th>P</th><th>E</th><th>S</th>
+
 </tr>
 </thead>
 
 <tbody id="body"></tbody>
 </table>
 
-<button onclick="addRow()">➕ Добавить</button>
+<button onclick="addRow()">Добавить</button>
 
 <script>
 
-const days = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
-
-function addRow(data = {}) {
+function addRow() {
     const body = document.getElementById("body");
 
-    let row = `<tr>
-        <td class="name" contenteditable="true">${data.name || "Имя"}</td>
-        <td class="role" contenteditable="true">${data.role || "TZ"}</td>`;
+    let row = "<tr>";
 
-    for (let d = 0; d < 7; d++) {
-        let val = data[days[d]] || "";
-        row += `<td class="day-btn" onclick="editDay(this, ${d})">${val}</td>`;
+    row += `<td contenteditable="true">Имя</td>`;
+    row += `<td contenteditable="true">TZ</td>`;
+
+    for (let i = 0; i < 7; i++) {
+        row += `
+        <td contenteditable="true" oninput="recalc()">08:00</td>
+        <td contenteditable="true" oninput="recalc()">0</td>
+        <td contenteditable="true" oninput="recalc()">17:00</td>
+        <td class="sum">0</td>
+        `;
     }
 
     row += "</tr>";
@@ -76,53 +73,32 @@ function addRow(data = {}) {
     body.innerHTML += row;
 }
 
-// окно редактирования дня
-function editDay(cell, dayIndex) {
-    let current = cell.innerText.split("|");
-
-    let start = prompt("BEGINN (HH:MM)", current[0] || "");
-    let pause = prompt("PAUSE (мин)", current[1] || "0");
-    let end   = prompt("ENDE (HH:MM)", current[2] || "");
-
-    if (!start || !end) return;
-
-    let sum = calcHours(start, pause, end);
-
-    cell.innerText = `${start} | ${pause}m | ${end} | ${sum}h`;
-
-    save();
+function toMin(t) {
+    if (!t) return 0;
+    let [h,m] = t.split(":").map(Number);
+    return h*60+m;
 }
 
-function calcHours(start, pause, end) {
-    let [sh, sm] = start.split(":").map(Number);
-    let [eh, em] = end.split(":").map(Number);
+function recalc() {
+    document.querySelectorAll("#body tr").forEach(row => {
+        let cells = row.querySelectorAll("td");
 
-    let startMin = sh * 60 + sm;
-    let endMin = eh * 60 + em;
+        let offset = 2;
 
-    let pauseMin = parseInt(pause || 0);
+        for (let d = 0; d < 7; d++) {
+            let b = cells[offset + d*4].innerText;
+            let p = cells[offset + d*4 + 1].innerText;
+            let e = cells[offset + d*4 + 2].innerText;
+            let s = cells[offset + d*4 + 3];
 
-    let diff = endMin - startMin - pauseMin;
+            let total = toMin(e) - toMin(b) - (parseInt(p)||0);
 
-    return (diff / 60).toFixed(2);
+            s.innerText = total > 0 ? (total/60).toFixed(2) : "0";
+        }
+    });
 }
 
-// сохранение
-function save() {
-    localStorage.setItem("plan", document.getElementById("body").innerHTML);
-}
-
-// загрузка
-function load() {
-    let data = localStorage.getItem("plan");
-    if (data) {
-        document.getElementById("body").innerHTML = data;
-    } else {
-        addRow();
-    }
-}
-
-load();
+addRow();
 
 </script>
 
