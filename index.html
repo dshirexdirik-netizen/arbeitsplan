@@ -1,9 +1,9 @@
 index.html 
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Timesheet + Excel</title>
+<title>Arbeitszeitplan</title>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
@@ -26,36 +26,36 @@ button {
 
 <body>
 
-<h2>Timesheet</h2>
+<h2>Arbeitszeitplan</h2>
 
 <table id="table">
 <thead>
 <tr>
-<th>Имя</th>
-<th>Должность</th>
+<th>Name</th>
+<th>Position</th>
 
-<th colspan="4">Пн</th>
-<th colspan="4">Вт</th>
-<th colspan="4">Ср</th>
-<th colspan="4">Чт</th>
-<th colspan="4">Пт</th>
-<th colspan="4">Сб</th>
-<th colspan="4">Вс</th>
+<th colspan="4">Mo</th>
+<th colspan="4">Di</th>
+<th colspan="4">Mi</th>
+<th colspan="4">Do</th>
+<th colspan="4">Fr</th>
+<th colspan="4">Sa</th>
+<th colspan="4">So</th>
 
-<th>WEEK</th>
-<th>MONTH</th>
+<th>WOCHE</th>
+<th>MONAT</th>
 </tr>
 
 <tr>
 <th></th><th></th>
 
-<th>S</th><th>P</th><th>E</th><th>H</th>
-<th>S</th><th>P</th><th>E</th><th>H</th>
-<th>S</th><th>P</th><th>E</th><th>H</th>
-<th>S</th><th>P</th><th>E</th><th>H</th>
-<th>S</th><th>P</th><th>E</th><th>H</th>
-<th>S</th><th>P</th><th>E</th><th>H</th>
-<th>S</th><th>P</th><th>E</th><th>H</th>
+<th>Start</th><th>Pause</th><th>Ende</th><th>Std</th>
+<th>Start</th><th>Pause</th><th>Ende</th><th>Std</th>
+<th>Start</th><th>Pause</th><th>Ende</th><th>Std</th>
+<th>Start</th><th>Pause</th><th>Ende</th><th>Std</th>
+<th>Start</th><th>Pause</th><th>Ende</th><th>Std</th>
+<th>Start</th><th>Pause</th><th>Ende</th><th>Std</th>
+<th>Start</th><th>Pause</th><th>Ende</th><th>Std</th>
 
 <th></th><th></th>
 </tr>
@@ -64,7 +64,7 @@ button {
 <tbody id="body"></tbody>
 </table>
 
-<button onclick="addRow()">➕ Add</button>
+<button onclick="addRow()">➕ Mitarbeiter hinzufügen</button>
 <button onclick="exportExcel()">📥 Excel Export</button>
 
 <script>
@@ -133,6 +133,7 @@ function recalc() {
         let weekCell = cells[cells.length - 2];
         let monthCell = cells[cells.length - 1];
 
+        // 🔥 FIX: jetzt in STUNDEN, nicht Minuten
         weekCell.innerText = (weekMin / 60).toFixed(2);
         monthCell.innerText = ((weekMin / 60) * 4).toFixed(2);
     });
@@ -144,9 +145,9 @@ function exportExcel() {
     let wb = XLSX.utils.book_new();
     let ws = XLSX.utils.table_to_sheet(table);
 
-    XLSX.utils.book_append_sheet(wb, ws, "Timesheet");
+    XLSX.utils.book_append_sheet(wb, ws, "Arbeitszeit");
 
-    XLSX.writeFile(wb, "timesheet.xlsx");
+    XLSX.writeFile(wb, "arbeitszeit.xlsx");
 }
 
 addRow();
