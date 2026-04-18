@@ -3,9 +3,7 @@ index.html
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Shift System (minutes)</title>
-
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<title>Timesheet</title>
 
 <style>
 body { font-family: Arial; padding:10px; background:#f5f6fa; }
@@ -15,28 +13,27 @@ th, td { border:1px solid #ddd; padding:6px; text-align:center; }
 
 th { background:#2f3640; color:white; }
 
-.week, .month { background:#f1f2f6; font-weight:bold; }
-
 button {
     margin-top:10px;
     width:100%;
     padding:10px;
     font-size:16px;
 }
+
+.sum { background:#f1f2f6; font-weight:bold; }
 </style>
 </head>
 
 <body>
 
-<h2>План смен (в минутах)</h2>
+<h2>Timesheet</h2>
 
-<table id="table">
+<table>
 <thead>
 <tr>
 <th>Имя</th>
 <th>Должность</th>
 
-<!-- 7 дней -->
 <th colspan="4">Пн</th>
 <th colspan="4">Вт</th>
 <th colspan="4">Ср</th>
@@ -45,21 +42,21 @@ button {
 <th colspan="4">Сб</th>
 <th colspan="4">Вс</th>
 
-<th>WOCHE</th>
-<th>MONAT</th>
+<th>WEEK</th>
+<th>MONTH</th>
 </tr>
 
 <tr>
 <th></th><th></th>
 
-<!-- 7 дней × (B P E S) -->
-<th>B</th><th>P</th><th>E</th><th>S</th>
-<th>B</th><th>P</th><th>E</th><th>S</th>
-<th>B</th><th>P</th><th>E</th><th>S</th>
-<th>B</th><th>P</th><th>E</th><th>S</th>
-<th>B</th><th>P</th><th>E</th><th>S</th>
-<th>B</th><th>P</th><th>E</th><th>S</th>
-<th>B</th><th>P</th><th>E</th><th>S</th>
+<!-- 7 дней -->
+<th>S</th><th>P</th><th>E</th><th>H</th>
+<th>S</th><th>P</th><th>E</th><th>H</th>
+<th>S</th><th>P</th><th>E</th><th>H</th>
+<th>S</th><th>P</th><th>E</th><th>H</th>
+<th>S</th><th>P</th><th>E</th><th>H</th>
+<th>S</th><th>P</th><th>E</th><th>H</th>
+<th>S</th><th>P</th><th>E</th><th>H</th>
 
 <th></th><th></th>
 </tr>
@@ -69,7 +66,6 @@ button {
 </table>
 
 <button onclick="addRow()">➕ Добавить</button>
-<button onclick="exportExcel()">📥 Excel</button>
 
 <script>
 
@@ -84,9 +80,9 @@ function addRow() {
     for (let i = 0; i < 7; i++) {
         row += `
         <td contenteditable="true" oninput="recalc()">08:00</td>
-        <td contenteditable="true" oninput="recalc()">30</td>
-        <td contenteditable="true" oninput="recalc()">17:00</td>
-        <td>0</td>
+        <td contenteditable="true" oninput="recalc()">01:30</td>
+        <td contenteditable="true" oninput="recalc()">18:45</td>
+        <td class="sum">0</td>
         `;
     }
 
@@ -98,11 +94,17 @@ function addRow() {
     body.innerHTML += row;
 }
 
+// HH:MM → минуты
 function toMin(t) {
     if (!t) return 0;
     let p = t.split(":");
     if (p.length !== 2) return 0;
     return (+p[0]) * 60 + (+p[1]);
+}
+
+// PAUSE тоже HH:MM
+function pauseMin(t) {
+    return toMin(t);
 }
 
 function recalc() {
@@ -114,35 +116,31 @@ function recalc() {
 
         for (let d = 0; d < 7; d++) {
 
-            let b = cells[offset + d*4].innerText.trim();
-            let p = parseInt(cells[offset + d*4 + 1].innerText.trim()) || 0;
-            let e = cells[offset + d*4 + 2].innerText.trim();
-            let s = cells[offset + d*4 + 3];
+            let start = cells[offset + d*4].innerText.trim();
+            let pause = cells[offset + d*4 + 1].innerText.trim();
+            let end   = cells[offset + d*4 + 2].innerText.trim();
+            let out   = cells[offset + d*4 + 3];
 
-            let start = toMin(b);
-            let end = toMin(e);
-
-            let diff = end - start - p;
+            let diff =
+                toMin(end) -
+                toMin(start) -
+                pauseMin(pause);
 
             if (diff < 0) diff = 0;
 
-            s.innerText = diff; // 🔥 МИНУТЫ
+            let hours = diff / 60;
 
-            week += diff;
+            out.innerText = hours.toFixed(2);
+
+            week += hours;
         }
 
         let weekCell = cells[cells.length - 2];
         let monthCell = cells[cells.length - 1];
 
-        weekCell.innerText = week;
-        monthCell.innerText = week * 4;
+        weekCell.innerText = week.toFixed(2);
+        monthCell.innerText = (week * 4).toFixed(2);
     });
-}
-
-function exportExcel() {
-    let table = document.getElementById("table");
-    let wb = XLSX.utils.table_to_book(table, { sheet: "Shifts" });
-    XLSX.writeFile(wb, "shifts.xlsx");
 }
 
 addRow();
