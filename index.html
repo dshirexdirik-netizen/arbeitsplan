@@ -3,7 +3,7 @@ index.html
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Shift System</title>
+<title>Shift System (minutes)</title>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
@@ -15,7 +15,7 @@ th, td { border:1px solid #ddd; padding:6px; text-align:center; }
 
 th { background:#2f3640; color:white; }
 
-.sum, .week, .month { background:#f1f2f6; font-weight:bold; }
+.week, .month { background:#f1f2f6; font-weight:bold; }
 
 button {
     margin-top:10px;
@@ -28,7 +28,7 @@ button {
 
 <body>
 
-<h2>План смен</h2>
+<h2>План смен (в минутах)</h2>
 
 <table id="table">
 <thead>
@@ -36,6 +36,7 @@ button {
 <th>Имя</th>
 <th>Должность</th>
 
+<!-- 7 дней -->
 <th colspan="4">Пн</th>
 <th colspan="4">Вт</th>
 <th colspan="4">Ср</th>
@@ -51,7 +52,7 @@ button {
 <tr>
 <th></th><th></th>
 
-<!-- 7 дней -->
+<!-- 7 дней × (B P E S) -->
 <th>B</th><th>P</th><th>E</th><th>S</th>
 <th>B</th><th>P</th><th>E</th><th>S</th>
 <th>B</th><th>P</th><th>E</th><th>S</th>
@@ -69,7 +70,6 @@ button {
 
 <button onclick="addRow()">➕ Добавить</button>
 <button onclick="exportExcel()">📥 Excel</button>
-<button onclick="clearAll()">🗑 Очистить</button>
 
 <script>
 
@@ -86,7 +86,7 @@ function addRow() {
         <td contenteditable="true" oninput="recalc()">08:00</td>
         <td contenteditable="true" oninput="recalc()">30</td>
         <td contenteditable="true" oninput="recalc()">17:00</td>
-        <td class="sum">0</td>
+        <td>0</td>
         `;
     }
 
@@ -96,14 +96,13 @@ function addRow() {
     row += "</tr>";
 
     body.innerHTML += row;
-
-    save();
 }
 
-function timeToMin(t) {
+function toMin(t) {
     if (!t) return 0;
-    let [h,m] = t.split(":").map(Number);
-    return h*60 + m;
+    let p = t.split(":");
+    if (p.length !== 2) return 0;
+    return (+p[0]) * 60 + (+p[1]);
 }
 
 function recalc() {
@@ -120,39 +119,24 @@ function recalc() {
             let e = cells[offset + d*4 + 2].innerText.trim();
             let s = cells[offset + d*4 + 3];
 
-            let start = timeToMin(b);
-            let end = timeToMin(e);
+            let start = toMin(b);
+            let end = toMin(e);
 
-            let total = end - start - p;
+            let diff = end - start - p;
 
-            let hours = total > 0 ? total / 60 : 0;
+            if (diff < 0) diff = 0;
 
-            s.innerText = hours.toFixed(2);
+            s.innerText = diff; // 🔥 МИНУТЫ
 
-            week += hours;
+            week += diff;
         }
 
         let weekCell = cells[cells.length - 2];
         let monthCell = cells[cells.length - 1];
 
-        weekCell.innerText = week.toFixed(2);
-        monthCell.innerText = (week * 4).toFixed(2);
+        weekCell.innerText = week;
+        monthCell.innerText = week * 4;
     });
-
-    save();
-}
-
-function save() {
-    localStorage.setItem("shift_data", document.getElementById("body").innerHTML);
-}
-
-function load() {
-    let data = localStorage.getItem("shift_data");
-    if (data) {
-        document.getElementById("body").innerHTML = data;
-    } else {
-        addRow();
-    }
 }
 
 function exportExcel() {
@@ -161,15 +145,7 @@ function exportExcel() {
     XLSX.writeFile(wb, "shifts.xlsx");
 }
 
-function clearAll() {
-    localStorage.removeItem("shift_data");
-    document.getElementById("body").innerHTML = "";
-    addRow();
-}
-
-document.addEventListener("input", recalc);
-
-load();
+addRow();
 
 </script>
 
