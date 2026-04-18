@@ -3,89 +3,56 @@ index.html
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Arbeitsplan</title>
-
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<title>MEP Plan</title>
 
 <style>
 body{
-  font-family:-apple-system,Arial;
-  background:#f5f6fa;
+  font-family:Arial;
   padding:10px;
 }
 
-h2{text-align:center;}
-
 table{
-  width:100%;
   border-collapse:collapse;
-  background:#fff;
+  width:100%;
 }
 
-th{
-  background:#2f3640;
-  color:#fff;
-  font-size:12px;
-  padding:6px;
-}
-
-td{
-  border:1px solid #ddd;
+td, th{
+  border:1px solid #000;
   text-align:center;
-}
-
-tbody tr:nth-child(even){
-  background:#f1f2f6;
-}
-
-tr:hover{
-  background:#dcdde1;
+  font-size:12px;
+  padding:4px;
 }
 
 input{
   width:100%;
   border:none;
   text-align:center;
-  padding:6px;
 }
 
-button{
-  width:100%;
-  padding:12px;
-  margin-top:10px;
-  border:none;
-  border-radius:8px;
-  background:#273c75;
-  color:#fff;
-  font-size:16px;
-  cursor:pointer;
-}
-
-.delete{
-  background:#c23616;
-}
-
-tfoot{
-  background:#dcdde1;
+.header{
   font-weight:bold;
 }
+
 </style>
 </head>
 
 <body>
 
-<h2>Wochenplan</h2>
+<h3>Mitarbeiter-Einsatz-Planung (MEP)</h3>
 
-<table>
+<table id="table">
 <thead>
-<tr>
-<th>Name</th>
-<th>Position</th>
-<th>Mo</th><th>Di</th><th>Mi</th><th>Do</th><th>Fr</th><th>Sa</th><th>So</th>
-<th>Pause</th>
-<th>Stunden</th>
-<th>Aktion</th>
+<tr class="header">
+<td>Name</td>
+<td>Funktion</td>
+<td>Mo</td>
+<td>Di</td>
+<td>Mi</td>
+<td>Do</td>
+<td>Fr</td>
+<td>Sa</td>
+<td>So</td>
+<td>Summe Woche</td>
 </tr>
 </thead>
 
@@ -93,55 +60,47 @@ tfoot{
 
 <tfoot>
 <tr>
-<td colspan="10">Общие часы</td>
-<td id="totalHours">0</td>
-<td></td>
-</tr>
-
-<tr>
-<td colspan="10">Общая пауза</td>
-<td id="totalPause">0</td>
-<td></td>
+<td colspan="9">Gesamt (alle Mitarbeiter)</td>
+<td id="totalAll">0</td>
 </tr>
 </tfoot>
 
 </table>
 
-<button onclick="addRow()">➕ Mitarbeiter</button>
-<button onclick="exportExcel()">📥 Excel</button>
+<button onclick="addRow()">+ Mitarbeiter</button>
 
 <script>
 
-let data = JSON.parse(localStorage.getItem("plan") || "[]");
+let data = [];
 
-if(data.length === 0){
-  data = [{
+function createDay(){
+  return {start:"", end:"", pause:0};
+}
+
+function addRow(){
+  data.push({
     name:"",
-    role:"Mitarbeiter",
-    days:[0,0,0,0,0,0,0],
-    pause:1
-  }];
+    role:"",
+    days:[createDay(),createDay(),createDay(),createDay(),createDay(),createDay(),createDay()]
+  });
+  render();
 }
 
-function save(){
-  localStorage.setItem("plan", JSON.stringify(data));
+function timeToNumber(t){
+  if(!t) return 0;
+  const [h,m] = t.split(":");
+  return Number(h) + Number(m)/60;
 }
 
-function sum(days){
-  return days.reduce((a,b)=>a+b,0);
+function calcDay(d){
+  const start = timeToNumber(d.start);
+  const end = timeToNumber(d.end);
+  if(end <= start) return 0;
+  return Math.max(0, end - start - (d.pause || 0));
 }
 
-function calcRow(row){
-  const total = sum(row.days);
-  const pause = total > 0 ? (row.pause || 0) : 0;
-  return Math.max(0, total - pause);
-}
-
-function totalPause(){
-  return data.reduce((a,r)=>{
-    const worked = sum(r.days);
-    return a + (worked > 0 ? (r.pause || 0) : 0);
-  },0);
+function calcWeek(row){
+  return row.days.reduce((a,d)=>a+calcDay(d),0);
 }
 
 function render(){
@@ -151,34 +110,26 @@ function render(){
   data.forEach((row,i)=>{
     const tr = document.createElement("tr");
 
-    tr.innerHTML = `
-      <td><input value="${row.name}" oninput="data[${i}].name=this.value;save()"></td>
-      <td><input value="${row.role}" oninput="data[${i}].role=this.value;save()"></td>
-
-      ${row.days.map((d,di)=>`
-        <td>
-          <input type="number" min="0" max="24" value="${d}"
-          oninput="
-            data[${i}].days[${di}]=Number(this.value)||0;
-            save();
-            update();
-          ">
-        </td>
-      `).join("")}
-
-      <td>
-        <input type="number" min="0" max="12" value="${row.pause}"
-        oninput="
-          data[${i}].pause=Number(this.value)||0;
-          save();
-          update();
-        ">
-      </td>
-
-      <td id="hours-${i}">${calcRow(row)}</td>
-      <td><button class="delete" onclick="deleteRow(${i})">X</button></td>
+    let html = `
+      <td><input value="${row.name}" oninput="data[${i}].name=this.value"></td>
+      <td><input value="${row.role}" oninput="data[${i}].role=this.value"></td>
     `;
 
+    row.days.forEach((d,di)=>{
+      html += `
+      <td>
+        <input type="time" value="${d.start}" onchange="data[${i}].days[${di}].start=this.value;update()">
+        <input type="time" value="${d.end}" onchange="data[${i}].days[${di}].end=this.value;update()">
+        <input type="number" min="0" max="5" value="${d.pause}" 
+        onchange="data[${i}].days[${di}].pause=Number(this.value)||0;update()">
+        <div id="day-${i}-${di}">0</div>
+      </td>
+      `;
+    });
+
+    html += `<td id="week-${i}">0</td>`;
+
+    tr.innerHTML = html;
     tbody.appendChild(tr);
   });
 
@@ -187,67 +138,28 @@ function render(){
 
 function update(){
   let total = 0;
-  let pauseTotal = 0;
 
   data.forEach((row,i)=>{
-    const hours = calcRow(row);
-    total += hours;
+    let week = 0;
 
-    const worked = sum(row.days);
-    if(worked > 0){
-      pauseTotal += (row.pause || 0);
-    }
+    row.days.forEach((d,di)=>{
+      const h = calcDay(d);
+      week += h;
 
-    const el = document.getElementById(`hours-${i}`);
-    if(el) el.innerText = hours;
+      const el = document.getElementById(`day-${i}-${di}`);
+      if(el) el.innerText = h.toFixed(2);
+    });
+
+    total += week;
+
+    const w = document.getElementById(`week-${i}`);
+    if(w) w.innerText = week.toFixed(2);
   });
 
-  document.getElementById("totalHours").innerText = total;
-  document.getElementById("totalPause").innerText = pauseTotal;
+  document.getElementById("totalAll").innerText = total.toFixed(2);
 }
 
-function addRow(){
-  data.push({
-    name:"",
-    role:"Mitarbeiter",
-    days:[0,0,0,0,0,0,0],
-    pause:1
-  });
-
-  save();
-  render();
-}
-
-function deleteRow(i){
-  data.splice(i,1);
-  save();
-  render();
-}
-
-function exportExcel(){
-  const wb = XLSX.utils.book_new();
-
-  const ws = XLSX.utils.json_to_sheet(
-    data.map(r=>({
-      Name:r.name,
-      Position:r.role,
-      Mo:r.days[0],
-      Di:r.days[1],
-      Mi:r.days[2],
-      Do:r.days[3],
-      Fr:r.days[4],
-      Sa:r.days[5],
-      So:r.days[6],
-      Pause:r.pause,
-      Stunden:calcRow(r)
-    }))
-  );
-
-  XLSX.utils.book_append_sheet(wb, ws, "Plan");
-  XLSX.writeFile(wb, "arbeitsplan.xlsx");
-}
-
-render();
+addRow();
 
 </script>
 
