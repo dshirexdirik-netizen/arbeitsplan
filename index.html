@@ -1,9 +1,9 @@
-index.html
+index.html 
 <!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Timesheet Hours</title>
+<title>Timesheet Hours FIX</title>
 
 <style>
 body { font-family: Arial; padding:10px; background:#f5f6fa; }
@@ -24,7 +24,7 @@ button {
 
 <body>
 
-<h2>Timesheet (Hours)</h2>
+<h2>Timesheet (ONLY HOURS)</h2>
 
 <table>
 <thead>
@@ -47,7 +47,6 @@ button {
 <tr>
 <th></th><th></th>
 
-<!-- 7 дней -->
 <th>S</th><th>P</th><th>E</th><th>H</th>
 <th>S</th><th>P</th><th>E</th><th>H</th>
 <th>S</th><th>P</th><th>E</th><th>H</th>
@@ -67,14 +66,13 @@ button {
 
 <script>
 
-function toMinutes(t) {
+function toMin(t) {
     if (!t) return 0;
     let p = t.split(":");
     if (p.length !== 2) return 0;
     return (+p[0]) * 60 + (+p[1]);
 }
 
-// строка
 function addRow() {
     const body = document.getElementById("body");
 
@@ -100,13 +98,12 @@ function addRow() {
     body.innerHTML += row;
 }
 
-// расчёт в ЧАСАХ
 function recalc() {
     document.querySelectorAll("#body tr").forEach(row => {
         let cells = row.querySelectorAll("td");
 
         let offset = 2;
-        let weekHours = 0;
+        let weekMin = 0;
 
         for (let d = 0; d < 7; d++) {
 
@@ -116,10 +113,10 @@ function recalc() {
             let out   = cells[offset + d*4 + 3];
 
             let pauseMin = pause.includes(":")
-                ? toMinutes(pause)
+                ? toMin(pause)
                 : (parseInt(pause) || 0);
 
-            let diffMin = toMinutes(end) - toMinutes(start) - pauseMin;
+            let diffMin = toMin(end) - toMin(start) - pauseMin;
 
             if (diffMin < 0) diffMin = 0;
 
@@ -127,14 +124,14 @@ function recalc() {
 
             out.innerText = hours.toFixed(2);
 
-            weekHours += hours;
+            weekMin += diffMin;
         }
 
         let weekCell = cells[cells.length - 2];
         let monthCell = cells[cells.length - 1];
 
-        weekCell.innerText = weekHours.toFixed(2);
-        monthCell.innerText = (weekHours * 4).toFixed(2);
+        weekCell.innerText = (weekMin / 60).toFixed(2);
+        monthCell.innerText = ((weekMin / 60) * 4).toFixed(2);
     });
 }
 
