@@ -3,24 +3,39 @@ index.html
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Shift Plan</title>
+<title>План смен</title>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <style>
-body { font-family: Arial; padding:10px; }
-table { width:100%; border-collapse:collapse; }
-td, th { border:1px solid #ddd; padding:6px; text-align:center; }
-th { background:#2f3640; color:#fff; }
-.sum { background:#f1f2f6; font-weight:bold; }
+body { font-family: Arial; padding:10px; background:#f5f6fa; }
+
+table { width:100%; border-collapse:collapse; background:white; }
+th, td { border:1px solid #ddd; padding:6px; text-align:center; }
+
+th { background:#2f3640; color:white; }
+
+.sum, .week, .month { background:#f1f2f6; font-weight:bold; }
+
+button {
+    margin-top:10px;
+    width:100%;
+    padding:10px;
+    font-size:16px;
+}
 </style>
 </head>
 
 <body>
 
-<table>
+<h2>План смен</h2>
+
+<table id="table">
 <thead>
 <tr>
 <th>Имя</th>
 <th>Должность</th>
+
 <th colspan="4">Пн</th>
 <th colspan="4">Вт</th>
 <th colspan="4">Ср</th>
@@ -28,11 +43,15 @@ th { background:#2f3640; color:#fff; }
 <th colspan="4">Пт</th>
 <th colspan="4">Сб</th>
 <th colspan="4">Вс</th>
+
+<th>WOCHE</th>
+<th>MONAT</th>
 </tr>
 
 <tr>
 <th></th><th></th>
 
+<!-- 7 дней -->
 <th>B</th><th>P</th><th>E</th><th>S</th>
 <th>B</th><th>P</th><th>E</th><th>S</th>
 <th>B</th><th>P</th><th>E</th><th>S</th>
@@ -41,17 +60,22 @@ th { background:#2f3640; color:#fff; }
 <th>B</th><th>P</th><th>E</th><th>S</th>
 <th>B</th><th>P</th><th>E</th><th>S</th>
 
+<th></th><th></th>
 </tr>
 </thead>
 
 <tbody id="body"></tbody>
 </table>
 
-<button onclick="addRow()">Добавить</button>
+<button onclick="addRow()">➕ Добавить</button>
+<button onclick="exportExcel()">📥 Excel</button>
+<button onclick="clearAll()">🗑 Очистить</button>
 
 <script>
 
-function addRow() {
+const days = 7;
+
+function addRow(data = null) {
     const body = document.getElementById("body");
 
     let row = "<tr>";
@@ -68,15 +92,21 @@ function addRow() {
         `;
     }
 
+    row += `<td class="week">0</td>`;
+    row += `<td class="month">0</td>`;
+
     row += "</tr>";
 
     body.innerHTML += row;
+
+    save();
 }
 
 function toMin(t) {
     if (!t) return 0;
-    let [h,m] = t.split(":").map(Number);
-    return h*60+m;
+    let parts = t.split(":");
+    if (parts.length < 2) return 0;
+    return (+parts[0]) * 60 + (+parts[1]);
 }
 
 function recalc() {
@@ -84,8 +114,10 @@ function recalc() {
         let cells = row.querySelectorAll("td");
 
         let offset = 2;
+        let week = 0;
 
         for (let d = 0; d < 7; d++) {
+
             let b = cells[offset + d*4].innerText;
             let p = cells[offset + d*4 + 1].innerText;
             let e = cells[offset + d*4 + 2].innerText;
@@ -93,12 +125,51 @@ function recalc() {
 
             let total = toMin(e) - toMin(b) - (parseInt(p)||0);
 
-            s.innerText = total > 0 ? (total/60).toFixed(2) : "0";
+            let hours = total > 0 ? total/60 : 0;
+
+            s.innerText = hours.toFixed(2);
+
+            week += hours;
         }
+
+        let weekCell = cells[cells.length - 2];
+        let monthCell = cells[cells.length - 1];
+
+        weekCell.innerText = week.toFixed(2);
+        monthCell.innerText = (week * 4).toFixed(2);
     });
+
+    save();
 }
 
-addRow();
+function save() {
+    localStorage.setItem("shift_table", document.getElementById("body").innerHTML);
+}
+
+function load() {
+    let data = localStorage.getItem("shift_table");
+    if (data) {
+        document.getElementById("body").innerHTML = data;
+    } else {
+        addRow();
+    }
+}
+
+function exportExcel() {
+    let table = document.getElementById("table");
+    let wb = XLSX.utils.table_to_book(table, { sheet: "Shifts" });
+    XLSX.writeFile(wb, "shifts.xlsx");
+}
+
+function clearAll() {
+    localStorage.removeItem("shift_table");
+    document.getElementById("body").innerHTML = "";
+    addRow();
+}
+
+document.addEventListener("input", recalc);
+
+load();
 
 </script>
 
