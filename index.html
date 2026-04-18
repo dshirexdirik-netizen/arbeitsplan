@@ -1,228 +1,128 @@
 index.html
 <!DOCTYPE html>
-<html lang="de">
+<html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>MEP Formular</title>
+<title>План смен</title>
 
 <style>
-body{
-  font-family:Arial;
-  padding:10px;
+body { font-family: Arial; background:#f5f6fa; padding:10px; }
+h2 { text-align:center; }
+
+table { width:100%; border-collapse:collapse; background:#fff; }
+th, td { border:1px solid #ddd; padding:6px; text-align:center; }
+
+th { background:#2f3640; color:#fff; }
+
+.name { background:#eaeef2; font-weight:bold; }
+.role { background:#dcdde1; }
+
+.day-btn {
+    background:#f1f2f6;
+    cursor:pointer;
 }
 
-h2{
-  text-align:center;
+button {
+    margin-top:10px;
+    width:100%;
+    padding:10px;
+    font-size:16px;
 }
-
-table{
-  border-collapse:collapse;
-  width:100%;
-}
-
-td, th{
-  border:1px solid #000;
-  text-align:center;
-  font-size:11px;
-  padding:3px;
-}
-
-input{
-  width:100%;
-  border:none;
-  text-align:center;
-  font-size:11px;
-}
-
-.small{
-  font-size:10px;
-}
-
-.section{
-  margin-top:10px;
-}
-
 </style>
 </head>
 
 <body>
 
-<h2>Mitarbeiter-Einsatz-Planung (MEP)</h2>
+<h2>План смен</h2>
 
 <table>
-<tr>
-<td>Monat / Jahr</td>
-<td><input></td>
-<td>Woche vom</td>
-<td><input></td>
-<td>bis</td>
-<td><input></td>
-<td>Filiale</td>
-<td><input></td>
-</tr>
-</table>
-
-<br>
-
-<table id="mainTable">
 <thead>
 <tr>
-<th>Name, Vorname</th>
-<th>Funktion</th>
-
-<th colspan="4">Montag</th>
-<th colspan="4">Dienstag</th>
-<th colspan="4">Mittwoch</th>
-<th colspan="4">Donnerstag</th>
-<th colspan="4">Freitag</th>
-<th colspan="4">Samstag</th>
-<th colspan="4">Sonntag</th>
-
-<th>Summe Woche</th>
-</tr>
-
-<tr>
-<th></th>
-<th></th>
-
-<!-- повторяется -->
-<script>
-for(let i=0;i<7;i++){
-  document.write(`
-    <th class="small">Beginn</th>
-    <th class="small">Ende</th>
-    <th class="small">Pause</th>
-    <th class="small">Summe/Tag</th>
-  `);
-}
-</script>
-
-<th></th>
+<th>Имя</th>
+<th>Должность</th>
+<th>Пн</th>
+<th>Вт</th>
+<th>Ср</th>
+<th>Чт</th>
+<th>Пт</th>
+<th>Сб</th>
+<th>Вс</th>
 </tr>
 </thead>
 
-<tbody id="tbody"></tbody>
+<tbody id="body"></tbody>
 </table>
 
-<br>
-
-<table>
-<tr>
-<td>Pausenzeiten:</td>
-<td class="small">bis 6 Stunden: keine Pause</td>
-<td class="small">mehr als 6 Stunden: 60 Minuten</td>
-</tr>
-</table>
-
-<table>
-<tr>
-<td>Abwesenheiten:</td>
-<td class="small">Feiertag</td>
-<td class="small">Freizeit</td>
-<td class="small">Krankheit (AU)</td>
-<td class="small">Schule (Prüfung/Urlaub)</td>
-<td class="small">Urlaub</td>
-</tr>
-</table>
-
-<br>
-
-<table>
-<tr>
-<td>Summe / Woche</td>
-<td id="totalWeek">0</td>
-<td>Summe / Monat</td>
-<td id="totalMonth">0</td>
-</tr>
-</table>
-
-<button onclick="addRow()">+ Mitarbeiter</button>
+<button onclick="addRow()">➕ Добавить</button>
 
 <script>
 
-let data = [];
+const days = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 
-function createDay(){
-  return {start:"", end:"", pause:0};
+function addRow(data = {}) {
+    const body = document.getElementById("body");
+
+    let row = `<tr>
+        <td class="name" contenteditable="true">${data.name || "Имя"}</td>
+        <td class="role" contenteditable="true">${data.role || "TZ"}</td>`;
+
+    for (let d = 0; d < 7; d++) {
+        let val = data[days[d]] || "";
+        row += `<td class="day-btn" onclick="editDay(this, ${d})">${val}</td>`;
+    }
+
+    row += "</tr>";
+
+    body.innerHTML += row;
 }
 
-function addRow(){
-  data.push({
-    name:"",
-    role:"",
-    days:Array(7).fill().map(createDay)
-  });
-  render();
+// окно редактирования дня
+function editDay(cell, dayIndex) {
+    let current = cell.innerText.split("|");
+
+    let start = prompt("BEGINN (HH:MM)", current[0] || "");
+    let pause = prompt("PAUSE (мин)", current[1] || "0");
+    let end   = prompt("ENDE (HH:MM)", current[2] || "");
+
+    if (!start || !end) return;
+
+    let sum = calcHours(start, pause, end);
+
+    cell.innerText = `${start} | ${pause}m | ${end} | ${sum}h`;
+
+    save();
 }
 
-function timeToNum(t){
-  if(!t) return 0;
-  let [h,m]=t.split(":");
-  return +h + (+m/60);
+function calcHours(start, pause, end) {
+    let [sh, sm] = start.split(":").map(Number);
+    let [eh, em] = end.split(":").map(Number);
+
+    let startMin = sh * 60 + sm;
+    let endMin = eh * 60 + em;
+
+    let pauseMin = parseInt(pause || 0);
+
+    let diff = endMin - startMin - pauseMin;
+
+    return (diff / 60).toFixed(2);
 }
 
-function calcDay(d){
-  let s = timeToNum(d.start);
-  let e = timeToNum(d.end);
-  if(e<=s) return 0;
-  return Math.max(0, e - s - (d.pause||0));
+// сохранение
+function save() {
+    localStorage.setItem("plan", document.getElementById("body").innerHTML);
 }
 
-function render(){
-  let tbody = document.getElementById("tbody");
-  tbody.innerHTML = "";
-
-  data.forEach((row,i)=>{
-    let tr = document.createElement("tr");
-
-    let html = `
-      <td><input value="${row.name}" oninput="data[${i}].name=this.value"></td>
-      <td><input value="${row.role}" oninput="data[${i}].role=this.value"></td>
-    `;
-
-    row.days.forEach((d,di)=>{
-      html += `
-        <td><input type="time" onchange="data[${i}].days[${di}].start=this.value;update()"></td>
-        <td><input type="time" onchange="data[${i}].days[${di}].end=this.value;update()"></td>
-        <td><input type="number" min="0" value="0" onchange="data[${i}].days[${di}].pause=Number(this.value)||0;update()"></td>
-        <td id="d-${i}-${di}">0</td>
-      `;
-    });
-
-    html += `<td id="w-${i}">0</td>`;
-
-    tr.innerHTML = html;
-    tbody.appendChild(tr);
-  });
-
-  update();
+// загрузка
+function load() {
+    let data = localStorage.getItem("plan");
+    if (data) {
+        document.getElementById("body").innerHTML = data;
+    } else {
+        addRow();
+    }
 }
 
-function update(){
-  let total = 0;
-
-  data.forEach((row,i)=>{
-    let week = 0;
-
-    row.days.forEach((d,di)=>{
-      let h = calcDay(d);
-      week += h;
-
-      let el = document.getElementById(`d-${i}-${di}`);
-      if(el) el.innerText = h.toFixed(2);
-    });
-
-    total += week;
-
-    let w = document.getElementById(`w-${i}`);
-    if(w) w.innerText = week.toFixed(2);
-  });
-
-  document.getElementById("totalWeek").innerText = total.toFixed(2);
-  document.getElementById("totalMonth").innerText = total.toFixed(2);
-}
-
-addRow();
+load();
 
 </script>
 
