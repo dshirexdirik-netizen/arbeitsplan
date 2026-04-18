@@ -3,12 +3,16 @@ index.html
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>MEP Plan</title>
+<title>MEP Formular</title>
 
 <style>
 body{
   font-family:Arial;
   padding:10px;
+}
+
+h2{
+  text-align:center;
 }
 
 table{
@@ -19,18 +23,23 @@ table{
 td, th{
   border:1px solid #000;
   text-align:center;
-  font-size:12px;
-  padding:4px;
+  font-size:11px;
+  padding:3px;
 }
 
 input{
   width:100%;
   border:none;
   text-align:center;
+  font-size:11px;
 }
 
-.header{
-  font-weight:bold;
+.small{
+  font-size:10px;
+}
+
+.section{
+  margin-top:10px;
 }
 
 </style>
@@ -38,33 +47,93 @@ input{
 
 <body>
 
-<h3>Mitarbeiter-Einsatz-Planung (MEP)</h3>
+<h2>Mitarbeiter-Einsatz-Planung (MEP)</h2>
 
-<table id="table">
+<table>
+<tr>
+<td>Monat / Jahr</td>
+<td><input></td>
+<td>Woche vom</td>
+<td><input></td>
+<td>bis</td>
+<td><input></td>
+<td>Filiale</td>
+<td><input></td>
+</tr>
+</table>
+
+<br>
+
+<table id="mainTable">
 <thead>
-<tr class="header">
-<td>Name</td>
-<td>Funktion</td>
-<td>Mo</td>
-<td>Di</td>
-<td>Mi</td>
-<td>Do</td>
-<td>Fr</td>
-<td>Sa</td>
-<td>So</td>
-<td>Summe Woche</td>
+<tr>
+<th>Name, Vorname</th>
+<th>Funktion</th>
+
+<th colspan="4">Montag</th>
+<th colspan="4">Dienstag</th>
+<th colspan="4">Mittwoch</th>
+<th colspan="4">Donnerstag</th>
+<th colspan="4">Freitag</th>
+<th colspan="4">Samstag</th>
+<th colspan="4">Sonntag</th>
+
+<th>Summe Woche</th>
+</tr>
+
+<tr>
+<th></th>
+<th></th>
+
+<!-- повторяется -->
+<script>
+for(let i=0;i<7;i++){
+  document.write(`
+    <th class="small">Beginn</th>
+    <th class="small">Ende</th>
+    <th class="small">Pause</th>
+    <th class="small">Summe/Tag</th>
+  `);
+}
+</script>
+
+<th></th>
 </tr>
 </thead>
 
 <tbody id="tbody"></tbody>
+</table>
 
-<tfoot>
+<br>
+
+<table>
 <tr>
-<td colspan="9">Gesamt (alle Mitarbeiter)</td>
-<td id="totalAll">0</td>
+<td>Pausenzeiten:</td>
+<td class="small">bis 6 Stunden: keine Pause</td>
+<td class="small">mehr als 6 Stunden: 60 Minuten</td>
 </tr>
-</tfoot>
+</table>
 
+<table>
+<tr>
+<td>Abwesenheiten:</td>
+<td class="small">Feiertag</td>
+<td class="small">Freizeit</td>
+<td class="small">Krankheit (AU)</td>
+<td class="small">Schule (Prüfung/Urlaub)</td>
+<td class="small">Urlaub</td>
+</tr>
+</table>
+
+<br>
+
+<table>
+<tr>
+<td>Summe / Woche</td>
+<td id="totalWeek">0</td>
+<td>Summe / Monat</td>
+<td id="totalMonth">0</td>
+</tr>
 </table>
 
 <button onclick="addRow()">+ Mitarbeiter</button>
@@ -81,34 +150,30 @@ function addRow(){
   data.push({
     name:"",
     role:"",
-    days:[createDay(),createDay(),createDay(),createDay(),createDay(),createDay(),createDay()]
+    days:Array(7).fill().map(createDay)
   });
   render();
 }
 
-function timeToNumber(t){
+function timeToNum(t){
   if(!t) return 0;
-  const [h,m] = t.split(":");
-  return Number(h) + Number(m)/60;
+  let [h,m]=t.split(":");
+  return +h + (+m/60);
 }
 
 function calcDay(d){
-  const start = timeToNumber(d.start);
-  const end = timeToNumber(d.end);
-  if(end <= start) return 0;
-  return Math.max(0, end - start - (d.pause || 0));
-}
-
-function calcWeek(row){
-  return row.days.reduce((a,d)=>a+calcDay(d),0);
+  let s = timeToNum(d.start);
+  let e = timeToNum(d.end);
+  if(e<=s) return 0;
+  return Math.max(0, e - s - (d.pause||0));
 }
 
 function render(){
-  const tbody = document.getElementById("tbody");
+  let tbody = document.getElementById("tbody");
   tbody.innerHTML = "";
 
   data.forEach((row,i)=>{
-    const tr = document.createElement("tr");
+    let tr = document.createElement("tr");
 
     let html = `
       <td><input value="${row.name}" oninput="data[${i}].name=this.value"></td>
@@ -117,17 +182,14 @@ function render(){
 
     row.days.forEach((d,di)=>{
       html += `
-      <td>
-        <input type="time" value="${d.start}" onchange="data[${i}].days[${di}].start=this.value;update()">
-        <input type="time" value="${d.end}" onchange="data[${i}].days[${di}].end=this.value;update()">
-        <input type="number" min="0" max="5" value="${d.pause}" 
-        onchange="data[${i}].days[${di}].pause=Number(this.value)||0;update()">
-        <div id="day-${i}-${di}">0</div>
-      </td>
+        <td><input type="time" onchange="data[${i}].days[${di}].start=this.value;update()"></td>
+        <td><input type="time" onchange="data[${i}].days[${di}].end=this.value;update()"></td>
+        <td><input type="number" min="0" value="0" onchange="data[${i}].days[${di}].pause=Number(this.value)||0;update()"></td>
+        <td id="d-${i}-${di}">0</td>
       `;
     });
 
-    html += `<td id="week-${i}">0</td>`;
+    html += `<td id="w-${i}">0</td>`;
 
     tr.innerHTML = html;
     tbody.appendChild(tr);
@@ -143,20 +205,21 @@ function update(){
     let week = 0;
 
     row.days.forEach((d,di)=>{
-      const h = calcDay(d);
+      let h = calcDay(d);
       week += h;
 
-      const el = document.getElementById(`day-${i}-${di}`);
+      let el = document.getElementById(`d-${i}-${di}`);
       if(el) el.innerText = h.toFixed(2);
     });
 
     total += week;
 
-    const w = document.getElementById(`week-${i}`);
+    let w = document.getElementById(`w-${i}`);
     if(w) w.innerText = week.toFixed(2);
   });
 
-  document.getElementById("totalAll").innerText = total.toFixed(2);
+  document.getElementById("totalWeek").innerText = total.toFixed(2);
+  document.getElementById("totalMonth").innerText = total.toFixed(2);
 }
 
 addRow();
